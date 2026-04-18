@@ -4,8 +4,6 @@ import cv2
 
 model = YOLO("vision-mk01.pt")
 
-model = YOLO("vision-mk01.pt")
-
 rc = RoadCamera(
     model=model,
     camera1_index=0,
