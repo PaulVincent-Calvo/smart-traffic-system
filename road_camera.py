@@ -22,6 +22,8 @@ class RoadCamera:
         self.max_green_time = max_green_time
         self.camera1 = self.init_camera(camera1_index)
         self.camera2 = self.init_camera(camera2_index)
+        self.latest_frame1 = None
+        self.latest_frame2 = None
         self.vehicle_count = 0 
         self.interface_interval = interface_interval
         self.model = model
@@ -45,9 +47,44 @@ class RoadCamera:
             return None
         ok, frame = camera.read()
         return frame if ok else None
+    
+    def _inference_loop(self):
+        while not self._stop_event.is_set():
+            start = time.time()
 
-    # ── Vehicle counting ──────────────────────────────────────────────────────
+            total = 0
+            frames = []
 
+            for i, cam in enumerate((self.camera1, self.camera2)):
+                frame = self.read_frame(cam)
+                frames.append(frame)
+
+                total += self.count_vehicles_in_frame(frame)
+
+            with self._lock:
+                self.vehicle_count = total
+                self.latest_frame1 = frames[0]
+                if len(frames) > 1:
+                    self.latest_frame2 = frames[1]
+
+            elapsed = time.time() - start
+            sleep_time = self.interface_interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+    def show_cameras(self):
+        """Call this in your main loop to display camera feeds."""
+        with self._lock:
+            f1 = self.latest_frame1.copy() if self.latest_frame1 is not None else None
+            f2 = self.latest_frame2.copy() if self.latest_frame2 is not None else None
+
+        if f1 is not None:
+            cv2.imshow("Camera 1", f1)
+
+        if f2 is not None:
+            cv2.imshow("Camera 2", f2)
+
+        cv2.waitKey(1)
     def count_vehicles_in_frame(self, frame):
         if frame is None:
             return 0
@@ -60,36 +97,12 @@ class RoadCamera:
                     count += 1
         return count
 
-    # ── Background inference loop ─────────────────────────────────────────────
-
-    def _inference_loop(self):
-        """Runs in a background thread — grabs frames and updates vehicle_count."""
-        while not self._stop_event.is_set():
-            start = time.time()
-
-            total = 0
-            for cam in (self.camera1, self.camera2):
-                frame = self.read_frame(cam)
-                total += self.count_vehicles_in_frame(frame)
-
-            with self._lock:
-                self.vehicle_count = total
-
-            # Sleep for whatever remains of the interval
-            elapsed = time.time() - start
-            sleep_time = self.inference_interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-
-    # ── Public getter (thread-safe) ───────────────────────────────────────────
 
     def get_vehicle_count(self):
-        """Always call this instead of reading self.vehicle_count directly."""
         with self._lock:
             return self.vehicle_count
         
     def release(self):
-        """Stop the background thread and release cameras."""
         self._stop_event.set()
         self._thread.join()
         for cam in (self.camera1, self.camera2):

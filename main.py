@@ -1,26 +1,22 @@
 from road_camera import RoadCamera
 from ultralytics import YOLO
-import time
+import cv2
 
 model = YOLO("vision-mk01.pt")
-
-import time
-from road_camera import RoadCamera
-from ultralytics import YOLO
 
 model = YOLO("vision-mk01.pt")
 
 rc = RoadCamera(
     model=model,
-    camera1_index = 0, # replace indexes
-    camera2_index = None,  
+    camera1_index=0,
+    camera2_index=None,  # replace with index when second camera is connected
 )
 
 try:
     while True:
-        count = rc.get_vehicle_count()
-        print(f"Vehicles: {count}")
-        time.sleep(0.5)
-finally:
+        rc.show_cameras()
+        print("Vehicle count:", rc.get_vehicle_count())
+
+except KeyboardInterrupt:
     rc.release()
- 
+    cv2.destroyAllWindows()
