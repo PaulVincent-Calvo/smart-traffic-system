@@ -14,7 +14,7 @@ class RoadCamera:
             camera1_index = None, 
             camera2_index = None,
             model = None,
-            interface_interval = 1.0 # seconds between frame scans for vehicle_count
+            interface_interval = 1.5 # seconds between frame scans for vehicle_count
     ):
         self.is_green = False
         self.default_green_time = green_time
@@ -27,6 +27,8 @@ class RoadCamera:
         self.vehicle_count = 0 
         self.interface_interval = interface_interval
         self.model = model
+        self.vehicle_count_cam1 = 0  # Separate count for camera 1
+        self.vehicle_count_cam2 = 0  # Separate count for camera 2
 
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
@@ -59,10 +61,15 @@ class RoadCamera:
                 frame = self.read_frame(cam)
                 frames.append(frame)
 
-                total += self.count_vehicles_in_frame(frame)
+                # Live count - not accumulating, just current vehicles in frame
+                if i == 0:
+                    self.vehicle_count_cam1 = self.count_vehicles_in_frame(frame)
+                else:
+                    self.vehicle_count_cam2 = self.count_vehicles_in_frame(frame)
 
             with self._lock:
-                self.vehicle_count = total
+                # Live total - sum of current frame detections
+                self.vehicle_count = self.vehicle_count_cam1 + self.vehicle_count_cam2
                 self.latest_frame1 = frames[0]
                 if len(frames) > 1:
                     self.latest_frame2 = frames[1]
@@ -96,6 +103,21 @@ class RoadCamera:
                 if class_name in VEHICLE_CLASSES:
                     count += 1
         return count
+
+    def get_vehicle_count(self):
+        """Return total vehicle count from both cameras."""
+        with self._lock:
+            return self.vehicle_count
+
+    def get_vehicle_count_cam1(self):
+        """Return vehicle count from camera 1 only."""
+        with self._lock:
+            return self.vehicle_count_cam1
+
+    def get_vehicle_count_cam2(self):
+        """Return vehicle count from camera 2 only."""
+        with self._lock:
+            return self.vehicle_count_cam2
 
 
     def get_vehicle_count(self):
