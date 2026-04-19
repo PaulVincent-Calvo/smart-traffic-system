@@ -1,7 +1,7 @@
-from road_camera import RoadCamera
+from classes.road_camera import RoadCamera
 from ultralytics import YOLO
 import cv2
-from dashboard import Dashboard
+from classes.dashboard import Dashboard
 
 # Initialize model and road camera FIRST
 model = YOLO("vision-mk01.pt")
