@@ -10,9 +10,6 @@ class Dashboard:
         self.road_camera = road_camera
         self.name = name
 
-        # =========================
-        # MAIN CONTAINER (GRID ROOT)
-        # =========================
         self.frame = ttk.Frame(parent)
         self.frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
@@ -20,9 +17,6 @@ class Dashboard:
         self.frame.columnconfigure(1, weight=1)
         self.frame.rowconfigure(0, weight=1)
 
-        # =========================
-        # LEFT PANEL (CAMERAS)
-        # =========================
         left_frame = ttk.Frame(self.frame)
         left_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
@@ -44,9 +38,6 @@ class Dashboard:
         self.cam2_label = tk.Label(cam2_frame, bg="black")
         self.cam2_label.pack()
 
-        # =========================
-        # RIGHT PANEL (COUNTERS)
-        # =========================
         right_frame = ttk.Frame(self.frame)
         right_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
@@ -63,9 +54,6 @@ class Dashboard:
         self.total_count_label = ttk.Label(right_frame, text="Total: 0", font=("Arial", 14, "bold"))
         self.total_count_label.pack(pady=20)
 
-        # =========================
-        # IMAGE HOLDERS
-        # =========================
         self.photo1 = None
         self.photo2 = None
 
@@ -73,9 +61,6 @@ class Dashboard:
         self.update_counts()
         self.update_cameras()
 
-    # =========================
-    # UPDATE COUNTS
-    # =========================
     def update_counts(self):
         try:
             camera1 = self.road_camera.get_vehicle_count_cam1()
@@ -91,9 +76,6 @@ class Dashboard:
 
         self.parent.after(500, self.update_counts)
 
-    # =========================
-    # UPDATE CAMERAS
-    # =========================
     def update_cameras(self):
         try:
             with self.road_camera._lock:
