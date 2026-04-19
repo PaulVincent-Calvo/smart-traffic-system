@@ -1,7 +1,6 @@
 import cv2
 import threading
 import time
-from ultralytics import YOLO
 
 VEHICLE_CLASSES = {"car", "puv", "motorcycle"}
 
@@ -16,10 +15,6 @@ class RoadCamera:
             model = None,
             interface_interval = 1.5 # seconds between frame scans for vehicle_count
     ):
-        self.is_green = False
-        self.default_green_time = green_time
-        self.time_adder = time_adder
-        self.max_green_time = max_green_time
         self.camera1 = self.init_camera(camera1_index)
         self.camera2 = self.init_camera(camera2_index)
         self.latest_frame1 = None
@@ -119,11 +114,6 @@ class RoadCamera:
         with self._lock:
             return self.vehicle_count_cam2
 
-
-    def get_vehicle_count(self):
-        with self._lock:
-            return self.vehicle_count
-        
     def release(self):
         self._stop_event.set()
         self._thread.join()
