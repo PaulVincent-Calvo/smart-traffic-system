@@ -1,135 +1,118 @@
 import tkinter as tk
 from tkinter import ttk
-import threading
 import cv2
 from PIL import Image, ImageTk
 
 
 class Dashboard:
-    def __init__(self, road_camera):
+    def __init__(self, parent, road_camera, name="Dashboard"):
+        self.parent = parent
         self.road_camera = road_camera
-        self.root = tk.Tk()
-        self.root.title("Vehicle Counter Dashboard")
-        self.root.geometry("900x600")
-        self.root.resizable(True, True)
+        self.name = name
 
-        # Style configuration
-        style = ttk.Style()
-        style.configure("Title.TLabel", font=("Arial", 16, "bold"))
-        style.configure("Count.TLabel", font=("Arial", 32, "bold"))
-        style.configure("Subtitle.TLabel", font=("Arial", 12))
+        # =========================
+        # MAIN CONTAINER (GRID ROOT)
+        # =========================
+        self.frame = ttk.Frame(parent)
+        self.frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Create main container with two columns
-        # Left: Camera feeds, Right: Counters
-        left_frame = ttk.Frame(self.root)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.frame.columnconfigure(0, weight=3)
+        self.frame.columnconfigure(1, weight=1)
+        self.frame.rowconfigure(0, weight=1)
 
-        right_frame = ttk.Frame(self.root, width=250)
-        right_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
-        right_frame.pack_propagate(False)
+        # =========================
+        # LEFT PANEL (CAMERAS)
+        # =========================
+        left_frame = ttk.Frame(self.frame)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Camera 1 display
-        ttk.Label(left_frame, text="Camera 1", style="Subtitle.TLabel").pack()
-        self.cam1_label = tk.Label(left_frame, bg="black")
-        self.cam1_label.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        # Camera 1 container
+        cam1_frame = ttk.Frame(left_frame)
+        cam1_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        # Camera 2 display
-        ttk.Label(left_frame, text="Camera 2", style="Subtitle.TLabel").pack()
-        self.cam2_label = tk.Label(left_frame, bg="black")
-        self.cam2_label.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(cam1_frame, text=f"{name} - Camera 1", font=("Arial", 10, "bold")).pack()
 
-        # Counter section (right side)
-        title_label = ttk.Label(right_frame, text="Vehicle Counter", style="Title.TLabel")
-        title_label.pack(pady=(0, 30))
+        self.cam1_label = tk.Label(cam1_frame, bg="black")
+        self.cam1_label.pack()
 
-        # Camera 1 section
-        cam1_frame = ttk.Frame(right_frame)
-        cam1_frame.pack(fill=tk.X, pady=15)
+        # Camera 2 container
+        cam2_frame = ttk.Frame(left_frame)
+        cam2_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        ttk.Label(cam1_frame, text="Camera 1:", style="Subtitle.TLabel").pack(side=tk.LEFT)
-        self.cam1_count_label = ttk.Label(cam1_frame, text="0", style="Count.TLabel", foreground="blue")
-        self.cam1_count_label.pack(side=tk.RIGHT)
+        ttk.Label(cam2_frame, text=f"{name} - Camera 2", font=("Arial", 10, "bold")).pack()
 
-        # Camera 2 section
-        cam2_frame = ttk.Frame(right_frame)
-        cam2_frame.pack(fill=tk.X, pady=15)
+        self.cam2_label = tk.Label(cam2_frame, bg="black")
+        self.cam2_label.pack()
 
-        ttk.Label(cam2_frame, text="Camera 2:", style="Subtitle.TLabel").pack(side=tk.LEFT)
-        self.cam2_count_label = ttk.Label(cam2_frame, text="0", style="Count.TLabel", foreground="green")
-        self.cam2_count_label.pack(side=tk.RIGHT)
+        # =========================
+        # RIGHT PANEL (COUNTERS)
+        # =========================
+        right_frame = ttk.Frame(self.frame)
+        right_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
-        # Total section
-        total_frame = ttk.Frame(right_frame)
-        total_frame.pack(fill=tk.X, pady=15)
+        right_frame.columnconfigure(0, weight=1)
 
-        ttk.Label(total_frame, text="Total:", style="Subtitle.TLabel").pack(side=tk.LEFT)
-        self.total_count_label = ttk.Label(total_frame, text="0", style="Count.TLabel", foreground="red")
-        self.total_count_label.pack(side=tk.RIGHT)
+        ttk.Label(right_frame, text=name, font=("Arial", 12, "bold")).pack(pady=(10, 20))
 
-        # PhotoImage containers to prevent garbage collection
+        self.cam1_count_label = ttk.Label(right_frame, text="Camera 1: 0", font=("Arial", 12))
+        self.cam1_count_label.pack(pady=5)
+
+        self.cam2_count_label = ttk.Label(right_frame, text="Camera 2: 0", font=("Arial", 12))
+        self.cam2_count_label.pack(pady=5)
+
+        self.total_count_label = ttk.Label(right_frame, text="Total: 0", font=("Arial", 14, "bold"))
+        self.total_count_label.pack(pady=20)
+
+        # =========================
+        # IMAGE HOLDERS
+        # =========================
         self.photo1 = None
         self.photo2 = None
 
-        # Start update loops
+        # start loops
         self.update_counts()
         self.update_cameras()
 
+    # =========================
+    # UPDATE COUNTS
+    # =========================
     def update_counts(self):
-        """Update the vehicle counts from the RoadCamera instance."""
         try:
-            cam1_count = self.road_camera.get_vehicle_count_cam1()
-            cam2_count = self.road_camera.get_vehicle_count_cam2()
-            total_count = self.road_camera.get_vehicle_count()
+            camera1 = self.road_camera.get_vehicle_count_cam1()
+            camera2 = self.road_camera.get_vehicle_count_cam2()
+            total = self.road_camera.get_vehicle_count()
 
-            self.cam1_count_label.config(text=str(cam1_count))
-            self.cam2_count_label.config(text=str(cam2_count))
-            self.total_count_label.config(text=str(total_count))
+            self.cam1_count_label.config(text=f"Camera 1: {camera1}")
+            self.cam2_count_label.config(text=f"Camera 2: {camera2}")
+            self.total_count_label.config(text=f"Total: {total}")
+
         except Exception as e:
             print(f"Error updating dashboard: {e}")
 
-        # Schedule next update (every 500ms)
-        self.root.after(500, self.update_counts)
+        self.parent.after(500, self.update_counts)
 
+    # =========================
+    # UPDATE CAMERAS
+    # =========================
     def update_cameras(self):
-        """Update camera frames in the dashboard."""
         try:
-            # Get frames from road_camera
             with self.road_camera._lock:
                 frame1 = self.road_camera.latest_frame1.copy() if self.road_camera.latest_frame1 is not None else None
                 frame2 = self.road_camera.latest_frame2.copy() if self.road_camera.latest_frame2 is not None else None
 
-            # Update Camera 1
             if frame1 is not None:
                 frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB)
-                frame1 = cv2.resize(frame1, (400, 300))
-                img1 = Image.fromarray(frame1)
-                self.photo1 = ImageTk.PhotoImage(img1)
+                frame1 = cv2.resize(frame1, (500, 280))
+                self.photo1 = ImageTk.PhotoImage(Image.fromarray(frame1))
                 self.cam1_label.config(image=self.photo1)
 
-            # Update Camera 2
             if frame2 is not None:
                 frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
-                frame2 = cv2.resize(frame2, (400, 300))
-                img2 = Image.fromarray(frame2)
-                self.photo2 = ImageTk.PhotoImage(img2)
+                frame2 = cv2.resize(frame2, (500, 280))
+                self.photo2 = ImageTk.PhotoImage(Image.fromarray(frame2))
                 self.cam2_label.config(image=self.photo2)
+
         except Exception as e:
             print(f"Error updating cameras: {e}")
 
-        # Schedule next update (every 30ms ~ 30fps)
-        self.root.after(30, self.update_cameras)
-
-    def run(self):
-        """Start the tkinter main loop."""
-        self.root.mainloop()
-
-    def destroy(self):
-        """Close the dashboard window."""
-        self.root.quit()
-        self.root.destroy()
-
-
-def start_dashboard(road_camera):
-    """Start the dashboard in a separate thread."""
-    dashboard = Dashboard(road_camera)
-    dashboard.run()
+        self.parent.after(30, self.update_cameras)

@@ -1,23 +1,25 @@
 from classes.road_camera import RoadCamera
 from ultralytics import YOLO
-import cv2
 from classes.dashboard import Dashboard
+import tkinter as tk
+import cv2
 
-# Initialize model and road camera FIRST
-model = YOLO("vision-mk01.pt")
+model = YOLO("vision-mk01.pt") # model initialization
 
-rc = RoadCamera(
-    model=model,
-    camera1_index=1,
-    camera2_index=2,
+road_camera1 = RoadCamera(
+    model = model,
+    camera1_index = 0,
+    camera2_index = 0
 )
 
-# Create dashboard (includes camera display)
-dashboard = Dashboard(rc)
+root = tk.Tk()
+root.title("Vehicle Counter System")
+root.geometry("1200x700")
 
-# Run tkinter mainloop (this blocks)
+dashboard = Dashboard(root, road_camera1, name = "Road Camera 1") # dashboard inside root
+
 try:
-    dashboard.root.mainloop()
+    root.mainloop()
 finally:
-    rc.release()
+    road_camera1.release()
     cv2.destroyAllWindows()
