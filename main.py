@@ -11,7 +11,7 @@ model = YOLO("vision-mk01.pt")
 # One RoadCamera per road, each using a single camera feed
 road_camera1 = RoadCamera(
     model=model,
-    camera1_index=0,   # physical camera for Road 1
+    camera1_index=2,   # physical camera for Road 1
     camera2_index=None
 )
 
