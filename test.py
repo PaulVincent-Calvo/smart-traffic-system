@@ -17,13 +17,28 @@ from ultralytics import YOLO
 # CHANGE THIS to your Arduino port
 # Windows example: 'COM3'
 # Mac/Linux example: '/dev/ttyUSB0' or '/dev/ttyACM0'
-arduino = serial.Serial('COM6', 9600, timeout=1)
+print("Attempting to connect to Arduino on COM6...")
+try:
+    arduino = serial.Serial('COM6', 9600, timeout=1)
+    print(f"✓ Connected to Arduino: {arduino.name}")
+    print(f"  Port: {arduino.port}")
+    print(f"  Baud rate: {arduino.baudrate}")
+except Exception as e:
+    print(f"✗ Failed to connect: {e}")
+    exit(1)
+
 time.sleep(2)  # wait for Arduino reset
 
 def set_light(color):
     """Send color command to Arduino"""
-    arduino.write((color + '\n').encode())
-    print(f"Light set to {color}")
+    try:
+        data = (color + '\n').encode()
+        bytes_written = arduino.write(data)
+        arduino.flush()  # Force data to be sent immediately
+        print(f"→ Sent: '{color}' ({bytes_written} bytes) | Raw: {data}")
+        time.sleep(0.05)  # Small delay for Arduino to process
+    except Exception as e:
+        print(f"✗ Error sending to Arduino: {e}")
 
 # ============ INITIALIZE TRAFFIC LIGHT SYSTEM ============
 
